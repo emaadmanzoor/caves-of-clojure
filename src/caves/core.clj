@@ -48,6 +48,22 @@
   (s/put-string screen 0 0 "You lose!")
   (s/put-string screen 0 1 "Press any key to continue..."))
 
+(defmethod draw-ui :play [ui {{:keys [tiles]} :world :as game} screen]
+  (let [[cols rows] screen-size
+        vcols cols
+        vrows (dec rows)
+        start-x 0
+        start-y 0
+        end-x (+ start-x vcols)
+        end-y (+ start-y vrows)]
+    (doseq [[vrow-idx mrow-idx] (map vector
+                                     (range 0 vrows)
+                                     (range start-y end-y))
+            :let [row-tiles (subvec (tiles mrow-idx) start-x end-x)]]
+      (doseq [vcol-idx (range vcols)
+              :let [{:keys [glyph color]} (row-tiles vcol-idx)]]
+        (s/put-string screen vcol-idx vrow-idx glyph {:fg color})))))
+
 (defn draw-game [game screen]
   (clear-screen screen)
   (doseq [ui (:uis game)]
@@ -67,10 +83,28 @@
 ; which is given a new assignment. The modified
 ; game map is returned.
 
+; ->: This evaluates the first argument to it
+; and passes it on to the next function in the list
+; as the 2nd argument to that function.
+;
+; Eg. (-> (Math/sqrt 25) int list)
+; => (Math/sqrt 25) = 5.0
+; => (int 5.0) = 5
+; => (list 5) = [5]
+;
+; In our case, this is equivalent to:
+;
+; (assoc game :world (random-world)) => Change the :world
+; key for the game to be a random-world, and return the
+; resultant game
+;
+; (assoc game :uis [(new UI :play)]) => To the resultant
+; game with the random-world, replace the :uis key with
+; a new :play UI
 (defmethod process-input :start [game input]
-  (if (= input :enter)
-    (assoc game :uis [(new UI :win)])
-    (assoc game :uis [(new UI :lose)])))
+  (-> game
+    (assoc :world (random-world))
+    (assoc :uis [(new UI :play)])))
 
 (defmethod process-input :win [game input]
   (if (= input :escape)
@@ -125,7 +159,7 @@
 
 (defn new-game []
   (new Game
-       (new World)
+       nil
        [(new UI :start)]
        nil))
 
