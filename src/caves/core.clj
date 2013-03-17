@@ -1,5 +1,9 @@
-(ns caves-of-clojure.core
+(ns caves.core
+  (:use [caves.world :only [random-world]])
   (:require [lanterna.screen :as s]))
+
+; Constants
+(def screen-size [80 24])
 
 ; Data structures
 (defrecord UI [kind])
@@ -8,9 +12,10 @@
 
 ; Utility functions
 (defn clear-screen [screen]
-  (let [blank (apply str (repeat 80 \space))]
+  (let [[cols rows] screen-size
+        blank (apply str (repeat cols \space))]
     ; Define blank to be a string of 80 spaces
-    (doseq [row (range 24)]
+    (doseq [row (range rows)]
       ; Basically a for-loop from 0-23 (range 24)
       ; Put the 80 spaces at column 0, row <row>
       ; Assumes the screen is 80 columns x 24 rows
@@ -76,6 +81,12 @@
   (if (= input :escape)
     (assoc game :uis [])
     (assoc game :uis [(new UI :start)])))
+
+(defmethod process-input :play [game input]
+  (case input
+    :enter      (assoc game :uis [(new UI :win)])
+    :backspace  (assoc game :uis [(new UI :lose)])
+    game))
 
 (defn get-input [game screen]
   (assoc game :input (s/get-key-blocking screen)))
